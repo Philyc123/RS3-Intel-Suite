@@ -1,6 +1,7 @@
 import "./index.html";
 import * as a1lib from "alt1/base";
 import * as OCR from "alt1/ocr";
+const chatfont = require("./fonts/aa_12px_mono.fontmeta.json");
 
 type ItemAction = "SELL" | "DISASSEMBLE" | "KEEP" | "JUNK";
 
@@ -81,34 +82,47 @@ let autoTimer: number | null = null;
 
 function tickAutoMode() {
   try {
-    if (!window.alt1) {
-      status.innerHTML = "Alt1 object not detected.";
+    if (!window.alt1 || !alt1.rsLinked || !alt1.permissionPixel) {
+      status.innerHTML = "Alt1 not linked or missing pixel permission.";
       return;
     }
+
+    const img = a1lib.captureHoldFullRs();
+    const buf = img.toData();
+
+    // Test tooltip OCR area. Adjust these if needed.
+    const x = 900;
+    const y = 250;
+
+    const line = OCR.readLine(
+      buf,
+      chatfont,
+      [255, 255, 255],
+      x,
+      y,
+      true,
+      false
+    );
+
+    const text = line ? line.text : "";
 
     status.innerHTML =
       "Auto Mode: ON" +
-      "<br>alt1 exists: true" +
-      "<br>rsLinked: " + alt1.rsLinked +
-      "<br>permissionPixel: " + alt1.permissionPixel +
-      "<br>permissionOverlay: " + alt1.permissionOverlay;
+      "<br>Captured RS screen: " + img.width + " x " + img.height +
+      "<br>OCR text: " + text;
 
-    if (!alt1.permissionPixel) {
-      status.innerHTML += "<br>No pixel permission.";
-      return;
+    if (text.includes("Withdraw")) {
+      const item = text
+        .replace("Withdraw-All", "")
+        .replace("Withdraw-1", "")
+        .replace("Withdraw-5", "")
+        .replace("Withdraw-10", "")
+        .trim();
+
+      if (item) {
+        renderItem(item);
+      }
     }
-
-    if (!window.alt1 || !alt1.rsLinked) {
-  status.innerHTML =
-    "App is installed, but RuneScape is not linked.<br>" +
-    "Open RuneScape first, then launch this app from Alt1's app list.";
-  return;
-}
-
-const img = a1lib.captureHoldFullRs();
-status.innerHTML += "<br>Auto capture working. Tooltip OCR not added yet.";
-    status.innerHTML +=
-      "<br>Captured RS screen: " + img.width + " x " + img.height;
 
   } catch (e) {
     status.innerHTML = "Auto Mode error:<br>" + String(e);
