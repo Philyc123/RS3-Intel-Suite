@@ -30,15 +30,16 @@ module.exports = {
     module: {
         // The rules section tells webpack what to do with different file types when you import them from js/ts
         rules: [
-            { test: /\.tsx?$/, loader: "ts-loader" },
-            { test: /\.css$/, use: ["style-loader", "css-loader"] },
-            { test: /\.scss$/, use: ["style-loader", "css-loader", "sass-loader"] },
-            // type:"asset" means that webpack copies the file and gives you an url to them when you import them from js
-            { test: /\.(png|jpg|jpeg|gif|webp)$/, type: "asset/resource", generator: { filename: "[base]" } },
-            { test: /\.(html|json)$/, type: "asset/resource", generator: { filename: "[base]" } },
-            // file types useful for writing alt1 apps, make sure these two loader come after any other json or png loaders, otherwise they will be ignored
-            { test: /\.data\.png$/, loader: "alt1/imagedata-loader", type: "javascript/auto" },
-            { test: /\.fontmeta.json/, loader: "alt1/font-loader" }
+           { test: /\.tsx?$/, loader: "ts-loader" },
+	   { test: /\.css$/, use: ["style-loader", "css-loader"] },
+	   { test: /\.scss$/, use: ["style-loader", "css-loader", "sass-loader"] },
+
+	   { test: /\.data\.png$/, loader: "alt1/imagedata-loader", type: "javascript/auto" },
+	   { test: /\.fontmeta\.json$/, loader: "alt1/font-loader", type: "javascript/auto" },
+
+	   { test: /\.(png|jpg|jpeg|gif|webp)$/, type: "asset/resource", generator: { filename: "[base]" } },
+	   { test: /\.(html|json)$/, type: "asset/resource", generator: { filename: "[base]" } }
+            
         ]
     }
 }
