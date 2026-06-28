@@ -253,31 +253,35 @@ function extractQuantityFromTooltip(text: string): number {
 }
 
 function scanTooltipText(): string {
-  const img = a1lib.captureHoldFullRs();
-  const buf = img.toData();
+  const img = a1lib.captureHold(0, 0, alt1.rsWidth, alt1.rsHeight);
+  const buf = img.toData(0, 0, img.width, img.height);
 
-  const scanPoints = [
-    { x: 850, y: 220 },
-    { x: 900, y: 240 },
-    { x: 950, y: 260 },
-    { x: 1000, y: 280 },
-    { x: 1050, y: 300 },
-    { x: 1100, y: 320 },
-    { x: 1150, y: 340 },
-    { x: 1200, y: 360 },
-    { x: 1250, y: 380 },
-    { x: 1300, y: 400 },
-    { x: 1350, y: 420 },
-    { x: 1400, y: 440 }
+  const w = img.width;
+  const h = img.height;
+
+  const scanRatios = [
+    { x: 0.30, y: 0.18 },
+    { x: 0.35, y: 0.20 },
+    { x: 0.40, y: 0.22 },
+    { x: 0.45, y: 0.24 },
+    { x: 0.50, y: 0.26 },
+    { x: 0.55, y: 0.28 },
+    { x: 0.60, y: 0.30 },
+    { x: 0.65, y: 0.32 },
+    { x: 0.70, y: 0.34 },
+    { x: 0.75, y: 0.36 }
   ];
 
-  for (const p of scanPoints) {
+  for (const p of scanRatios) {
+    const x = Math.floor(w * p.x);
+    const y = Math.floor(h * p.y);
+
     const line = OCR.readLine(
       buf,
       chatfont,
       [255, 255, 255],
-      p.x,
-      p.y,
+      x,
+      y,
       true,
       false
     );
