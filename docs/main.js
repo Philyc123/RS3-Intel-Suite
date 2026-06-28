@@ -2336,23 +2336,70 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var alt1_base__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(alt1_base__WEBPACK_IMPORTED_MODULE_1__);
 
 
-document.body.innerHTML = "\n<div style=\"padding:10px;font-family:Arial;background:#111;color:white;min-height:100vh;\">\n  <h2>Bank Scanner</h2>\n  <button id=\"testBtn\" style=\"width:100%;padding:8px;\">Test Alt1 Capture</button>\n  <div id=\"status\" style=\"margin-top:10px;color:#aaa;\">Waiting...</div>\n</div>\n";
+document.body.innerHTML = "\n<div style=\"padding:10px;font-family:Arial;background:#111;color:white;min-height:100vh;\">\n  <h2>Bank Scanner - Stage 2</h2>\n  <button id=\"scanBtn\" style=\"width:100%;padding:8px;\">Scan Tooltip</button>\n  <div id=\"status\" style=\"margin-top:10px;color:#aaa;\">Waiting...</div>\n</div>\n";
 var status = document.getElementById("status");
-document.getElementById("testBtn").onclick = function () {
+function isTooltipBorder(r, g, b) {
+    return r >= 80 && r <= 150 && g >= 55 && g <= 120 && b >= 20 && b <= 80;
+}
+function findTooltipBox(img) {
+    var data = img.data;
+    var width = img.width;
+    var height = img.height;
+    var minX = width;
+    var minY = height;
+    var maxX = 0;
+    var maxY = 0;
+    var found = false;
+    for (var y = 0; y < height; y += 2) {
+        for (var x = 0; x < width; x += 2) {
+            var i = (y * width + x) * 4;
+            var r = data[i];
+            var g = data[i + 1];
+            var b = data[i + 2];
+            if (isTooltipBorder(r, g, b)) {
+                found = true;
+                if (x < minX)
+                    minX = x;
+                if (y < minY)
+                    minY = y;
+                if (x > maxX)
+                    maxX = x;
+                if (y > maxY)
+                    maxY = y;
+            }
+        }
+    }
+    if (!found)
+        return null;
+    var w = maxX - minX;
+    var h = maxY - minY;
+    if (w < 120 || h < 40)
+        return null;
+    if (w > 700 || h > 400)
+        return null;
+    return { x: minX, y: minY, w: w, h: h };
+}
+document.getElementById("scanBtn").onclick = function () {
     try {
-        if (!window.alt1) {
-            status.innerHTML = "Alt1 not detected.";
+        if (!window.alt1 || !alt1.rsLinked || !alt1.permissionPixel) {
+            status.innerHTML = "Alt1 not linked or pixel permission missing.";
             return;
         }
         var img = alt1_base__WEBPACK_IMPORTED_MODULE_1__.captureHold(0, 0, alt1.rsWidth, alt1.rsHeight);
+        var box = findTooltipBox(img.toData());
+        if (!box) {
+            status.innerHTML =
+                "No tooltip box found.<br><br>" +
+                    "Hover an item so the tooltip is visible, then click Scan Tooltip.";
+            return;
+        }
         status.innerHTML =
-            "Alt1 detected<br>" +
-                "rsLinked: " + alt1.rsLinked + "<br>" +
-                "permissionPixel: " + alt1.permissionPixel + "<br>" +
-                "permissionOverlay: " + alt1.permissionOverlay + "<br>" +
-                "rsWidth: " + alt1.rsWidth + "<br>" +
-                "rsHeight: " + alt1.rsHeight + "<br><br>" +
-                "Capture OK: " + img.width + " x " + img.height;
+            "Tooltip box detected:<br>" +
+                "x: " + box.x + "<br>" +
+                "y: " + box.y + "<br>" +
+                "width: " + box.w + "<br>" +
+                "height: " + box.h + "<br><br>" +
+                "Next step: OCR item name inside this box.";
     }
     catch (e) {
         status.innerHTML =
