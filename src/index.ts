@@ -2,12 +2,11 @@ import "./index.html";
 import * as a1lib from "alt1/base";
 import * as OCR from "alt1/ocr";
 
-const chatfontImport = require("./fonts/aa_12px_mono.fontmeta.json");
-const chatfont =
-  chatfontImport.default?.font
-  || chatfontImport.default
-  || chatfontImport.font
-  || chatfontImport;
+if (window.alt1) {
+  alt1.identifyAppUrl("https://philyc123.github.io/RS3-Intel-Suite/appconfig.json");
+}
+
+const chatfont = require("./fonts/aa_12px_mono.fontmeta.json");
 
 type ItemAction = "SELL" | "DISASSEMBLE" | "KEEP" | "UNKNOWN";
 
@@ -259,22 +258,43 @@ function extractQuantityFromTooltip(text: string): number {
 
 function scanTooltipText(): string {
   const img = a1lib.capture(0, 0, alt1.rsWidth, alt1.rsHeight);
+  const buf = img;
 
-  status.innerHTML =
-    "Auto Mode: ON" +
-    "<br>rsLinked: " + alt1.rsLinked +
-    "<br>permissionPixel: " + alt1.permissionPixel +
-    "<br>permissionOverlay: " + alt1.permissionOverlay +
-    "<br>rsWidth: " + alt1.rsWidth +
-    "<br>rsHeight: " + alt1.rsHeight +
-    "<br>Captured: " + img.width + " x " + img.height +
-    "<br>OCR disabled for this test";
+  const w = img.width;
+  const h = img.height;
 
-  return "";
-}
+  const scanRatios = [
+    { x: 0.30, y: 0.16 },
+    { x: 0.35, y: 0.18 },
+    { x: 0.40, y: 0.20 },
+    { x: 0.45, y: 0.22 },
+    { x: 0.50, y: 0.24 },
+    { x: 0.55, y: 0.26 },
+    { x: 0.60, y: 0.28 },
+    { x: 0.65, y: 0.30 },
+    { x: 0.70, y: 0.32 }
+  ];
 
-    if (line?.text?.toLowerCase().includes("withdraw")) {
-      return line.text;
+  for (const p of scanRatios) {
+    const x = Math.floor(w * p.x);
+    const y = Math.floor(h * p.y);
+
+    const line = OCR.readLine(
+      buf,
+      chatfont,
+      [255, 255, 255],
+      x,
+      y,
+      true,
+      false
+    );
+
+    if (line && line.text) {
+      const text = line.text.trim();
+
+      if (text.toLowerCase().includes("withdraw")) {
+        return text;
+      }
     }
   }
 
