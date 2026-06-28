@@ -254,7 +254,7 @@ function extractQuantityFromTooltip(text: string): number {
 
 function scanTooltipText(): string {
   const img = a1lib.capture(0, 0, alt1.rsWidth, alt1.rsHeight);
-  const buf = img;OCR
+  const buf = img;
 
   const w = img.width;
   const h = img.height;
@@ -274,12 +274,6 @@ function scanTooltipText(): string {
   for (const p of scanRatios) {
     const x = Math.floor(w * p.x);
     const y = Math.floor(h * p.y);
-    
-    status.innerHTML =
-  "Font debug:" +
-  "<br>font type: " + typeof chatfont +
-  "<br>font keys: " + Object.keys(chatfont || {}).join(", ");
-return "";
 
     const line = OCR.readLine(
       buf,
