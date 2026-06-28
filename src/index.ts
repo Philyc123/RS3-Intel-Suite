@@ -86,4 +86,12 @@ document.getElementById("scanBtn")!.onclick = () => {
       (e?.stack || e?.message || String(e)) +
       "</pre>";
   }
+function runScan() {
+  const btn = document.getElementById("scanBtn") as HTMLButtonElement | null;
+  if (btn) btn.click();
+}
+
+ (window as any).alt1pressed = () => {
+   runScan();
+ };
 };

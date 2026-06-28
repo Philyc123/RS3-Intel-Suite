@@ -2407,6 +2407,14 @@ document.getElementById("scanBtn").onclick = function () {
                 ((e === null || e === void 0 ? void 0 : e.stack) || (e === null || e === void 0 ? void 0 : e.message) || String(e)) +
                 "</pre>";
     }
+    function runScan() {
+        var btn = document.getElementById("scanBtn");
+        if (btn)
+            btn.click();
+    }
+    window.alt1pressed = function () {
+        runScan();
+    };
 };
 
 })();
