@@ -11,6 +11,17 @@
 return /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "./fonts/aa_12px_mono.fontmeta.json"
+/*!******************************************!*\
+  !*** ./fonts/aa_12px_mono.fontmeta.json ***!
+  \******************************************/
+(module, __unused_webpack_exports, __webpack_require__) {
+
+"use strict";
+module.exports = __webpack_require__.p + "aa_12px_mono.fontmeta.json";
+
+/***/ },
+
 /***/ "./index.html"
 /*!********************!*\
   !*** ./index.html ***!
@@ -2212,6 +2223,763 @@ module.exports = __WEBPACK_EXTERNAL_MODULE_sharp__;
 ;
 });
 
+/***/ },
+
+/***/ "../node_modules/alt1/dist/ocr/index.js"
+/*!**********************************************!*\
+  !*** ../node_modules/alt1/dist/ocr/index.js ***!
+  \**********************************************/
+(module, __unused_webpack_exports, __webpack_require__) {
+
+(function webpackUniversalModuleDefinition(root, factory) {
+	if(true)
+		module.exports = factory(__webpack_require__(/*! alt1/base */ "../node_modules/alt1/dist/base/index.js"));
+	else // removed by dead control flow
+{}
+})(globalThis, (__WEBPACK_EXTERNAL_MODULE_alt1_base__) => {
+return /******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	var __webpack_modules__ = ({
+
+/***/ "./src/ocr/index.ts"
+/*!**************************!*\
+  !*** ./src/ocr/index.ts ***!
+  \**************************/
+(__unused_webpack_module, exports, __nested_webpack_require_720__) {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.debugout = exports.debug = void 0;
+exports.debugFont = debugFont;
+exports.unblendBlackBackground = unblendBlackBackground;
+exports.unblendKnownBg = unblendKnownBg;
+exports.unblendTrans = unblendTrans;
+exports.canblend = canblend;
+exports.decompose2col = decompose2col;
+exports.decomposeblack = decomposeblack;
+exports.decompose3col = decompose3col;
+exports.findChar = findChar;
+exports.findReadLine = findReadLine;
+exports.getChatColorMono = getChatColorMono;
+exports.getChatColor = getChatColor;
+exports.readLine = readLine;
+exports.readSmallCapsBackwards = readSmallCapsBackwards;
+exports.readChar = readChar;
+exports.loadFontImage = loadFontImage;
+exports.generateFont = generateFont;
+const base_1 = __nested_webpack_require_720__(/*! alt1/base */ "alt1/base");
+exports.debug = {
+    printcharscores: false,
+    trackread: false
+};
+exports.debugout = {};
+/**
+ * draws the font definition to a buffer and displays it in the dom for debugging purposes
+ * @param font
+ */
+function debugFont(font) {
+    var spacing = font.width + 2;
+    var buf = new base_1.ImageData(spacing * font.chars.length, font.height + 1);
+    for (var a = 0; a < buf.data.length; a += 4) {
+        buf.data[a] = buf.data[a + 1] = buf.data[a + 2] = 0;
+        buf.data[a + 3] = 255;
+    }
+    for (var a = 0; a < font.chars.length; a++) {
+        var bx = a * spacing;
+        var chr = font.chars[a];
+        for (var b = 0; b < chr.pixels.length; b += (font.shadow ? 4 : 3)) {
+            buf.setPixel(bx + chr.pixels[b], chr.pixels[b + 1], [chr.pixels[b + 2], chr.pixels[b + 2], chr.pixels[b + 2], 255]);
+            if (font.shadow) {
+                buf.setPixel(bx + chr.pixels[b], chr.pixels[b + 1], [chr.pixels[b + 3], 0, 0, 255]);
+            }
+        }
+    }
+    buf.show();
+}
+function unblendBlackBackground(img, r, g, b) {
+    var rimg = new base_1.ImageData(img.width, img.height);
+    for (var i = 0; i < img.data.length; i += 4) {
+        var col = decomposeblack(img.data[i], img.data[i + 1], img.data[i + 2], r, g, b);
+        rimg.data[i + 0] = col[0] * 255;
+        rimg.data[i + 1] = rimg.data[i + 0];
+        rimg.data[i + 2] = rimg.data[i + 0];
+        rimg.data[i + 3] = 255;
+    }
+    return rimg;
+}
+/**
+ * unblends a imagebuffer into match strength with given color
+ * the bgimg argument should contain a second image with pixel occluded by the font visible.
+ * @param img
+ * @param shadow detect black as second color
+ * @param bgimg optional second image to
+ */
+function unblendKnownBg(img, bgimg, shadow, r, g, b) {
+    if (bgimg && (img.width != bgimg.width || img.height != bgimg.height)) {
+        throw "bgimg size doesn't match";
+    }
+    var rimg = new base_1.ImageData(img.width, img.height);
+    var totalerror = 0;
+    for (var i = 0; i < img.data.length; i += 4) {
+        var col = decompose2col(img.data[i], img.data[i + 1], img.data[i + 2], r, g, b, bgimg.data[i + 0], bgimg.data[i + 1], bgimg.data[i + 2]);
+        if (shadow) {
+            if (col[2] > 0.01) {
+                console.log("high error component: " + (col[2] * 100).toFixed(1) + "%");
+            }
+            totalerror += col[2];
+            var m = 1 - col[1] - Math.abs(col[2]); //main color+black=100%-bg-error
+            rimg.data[i + 0] = m * 255;
+            rimg.data[i + 1] = col[0] / m * 255;
+            rimg.data[i + 2] = rimg.data[i + 0];
+        }
+        else {
+            rimg.data[i + 0] = col[0] * 255;
+            rimg.data[i + 1] = rimg.data[i + 0];
+            rimg.data[i + 2] = rimg.data[i + 0];
+        }
+        rimg.data[i + 3] = 255;
+    }
+    return rimg;
+}
+/**
+ * Unblends a font image that is already conpletely isolated to the raw image used ingame. This is the easiest mode for pixel fonts where alpha is 0 or 255, or for extracted font files.
+ * @param img
+ * @param r
+ * @param g
+ * @param b
+ * @param shadow whether the font has a black shadow
+ */
+function unblendTrans(img, shadow, r, g, b) {
+    var rimg = new base_1.ImageData(img.width, img.height);
+    var pxlum = r + g + b;
+    for (var i = 0; i < img.data.length; i += 4) {
+        if (shadow) {
+            var lum = img.data[i + 0] + img.data[i + 1] + img.data[i + 2];
+            rimg.data[i + 0] = img.data[i + 3];
+            rimg.data[i + 1] = lum / pxlum * 255;
+            rimg.data[i + 2] = rimg.data[i + 0];
+        }
+        else {
+            rimg.data[i + 0] = img.data[i + 3];
+            rimg.data[i + 1] = rimg.data[i + 0];
+            rimg.data[i + 2] = rimg.data[i + 0];
+        }
+        rimg.data[i + 3] = 255;
+    }
+    return rimg;
+}
+/**
+ * Determised wether color [rgb]m can be a result of a blend with color [rgb]1 that is p (0-1) of the mix
+ * It returns the number that the second color has to lie outside of the possible color ranges
+ * @param rm resulting color
+ * @param r1 first color of the mix (the other color is unknown)
+ * @param p the portion of the [rgb]1 in the mix (0-1)
+ */
+function canblend(rm, gm, bm, r1, g1, b1, p) {
+    var m = Math.min(50, p / (1 - p));
+    var r = rm + (rm - r1) * m;
+    var g = gm + (gm - g1) * m;
+    var b = bm + (bm - b1) * m;
+    return Math.max(0, -r, -g, -b, r - 255, g - 255, b - 255);
+}
+/**
+ * decomposes a color in 2 given component colors and returns the amount of each color present
+ * also return a third (noise) component which is the the amount leftover orthagonal from the 2 given colors
+ */
+function decompose2col(rp, gp, bp, r1, g1, b1, r2, g2, b2) {
+    //get the normal of the error (cross-product of both colors)
+    var r3 = g1 * b2 - g2 * b1;
+    var g3 = b1 * r2 - b2 * r1;
+    var b3 = r1 * g2 - r2 * g1;
+    //normalize to length 255
+    var norm = 255 / Math.sqrt(r3 * r3 + g3 * g3 + b3 * b3);
+    r3 *= norm;
+    g3 *= norm;
+    b3 *= norm;
+    return decompose3col(rp, gp, bp, r1, g1, b1, r2, g2, b2, r3, g3, b3);
+}
+/**
+ * decomposes a pixel in a given color component and black and returns what proportion of the second color it contains
+ * this is not as formal as decompose 2/3 and only give a "good enough" number
+ */
+function decomposeblack(rp, gp, bp, r1, g1, b1) {
+    var dr = Math.abs(rp - r1);
+    var dg = Math.abs(gp - g1);
+    var db = Math.abs(bp - b1);
+    var maxdif = Math.max(dr, dg, db);
+    return [1 - maxdif / 255];
+}
+/**
+ * decomposes a color in 3 given component colors and returns the amount of each color present
+ */
+function decompose3col(rp, gp, bp, r1, g1, b1, r2, g2, b2, r3, g3, b3) {
+    //P=x*C1+y*C2+z*C3
+    //assemble as matrix 
+    //M*w=p
+    //get inverse of M
+    //dirty written out version of cramer's rule
+    var A = g2 * b3 - b2 * g3;
+    var B = g3 * b1 - b3 * g1;
+    var C = g1 * b2 - b1 * g2;
+    var D = b2 * r3 - r2 * b3;
+    var E = b3 * r1 - r3 * b1;
+    var F = b1 * r2 - r1 * b2;
+    var G = r2 * g3 - g2 * r3;
+    var H = r3 * g1 - g3 * r1;
+    var I = r1 * g2 - g1 * r2;
+    var det = r1 * A + g1 * D + b1 * G;
+    //M^-1*p=w
+    var x = (A * rp + D * gp + G * bp) / det;
+    var y = (B * rp + E * gp + H * bp) / det;
+    var z = (C * rp + F * gp + I * bp) / det;
+    return [x, y, z];
+}
+/**
+ * brute force to the exact position of the text
+ */
+function findChar(buffer, font, col, x, y, w, h) {
+    if (x < 0) {
+        return null;
+    }
+    if (y - font.basey < 0) {
+        return null;
+    }
+    if (x + w + font.width > buffer.width) {
+        return null;
+    }
+    if (y + h - font.basey + font.height > buffer.height) {
+        return null;
+    }
+    var best = 1000; //TODO finetune score constants
+    var bestchar = null;
+    for (var cx = x; cx < x + w; cx++) {
+        for (var cy = y; cy < y + h; cy++) {
+            var chr = readChar(buffer, font, col, cx, cy, false, false);
+            if (chr != null && chr.sizescore < best) {
+                best = chr.sizescore;
+                bestchar = chr;
+            }
+        }
+    }
+    return bestchar;
+}
+/**
+ * reads text with unknown exact coord or color. The given coord should be inside the text
+ * color selection not implemented yet
+ */
+function findReadLine(buffer, font, cols, x, y, w = -1, h = -1) {
+    if (w == -1) {
+        w = font.width + font.spacewidth;
+        x -= Math.ceil(w / 2);
+    }
+    if (h == -1) {
+        h = 7;
+        y -= 1;
+    }
+    var chr = null;
+    if (cols.length > 1) {
+        //TODO use getChatColor() instead for non-mono?
+        var sorted = getChatColorMono(buffer, new base_1.Rect(x, y - font.basey, w, h), cols);
+        //loop until we have a match (max 2 cols)
+        for (var a = 0; a < 2 && a < sorted.length && chr == null; a++) {
+            chr = findChar(buffer, font, sorted[a].col, x, y, w, h);
+        }
+    }
+    else {
+        chr = findChar(buffer, font, cols[0], x, y, w, h);
+    }
+    if (chr == null) {
+        return { debugArea: { x, y, w, h }, text: "", fragments: [] };
+    }
+    return readLine(buffer, font, cols, chr.x, chr.y, true, true);
+}
+function getChatColorMono(buf, rect, colors) {
+    var colormap = colors.map(c => ({ col: c, score: 0 }));
+    if (rect.x < 0 || rect.y < 0 || rect.x + rect.width > buf.width || rect.y + rect.height > buf.height) {
+        return colormap;
+    }
+    var data = buf.data;
+    var maxd = 50;
+    for (var colobj of colormap) {
+        var score = 0;
+        var col = colobj.col;
+        for (var y = rect.y; y < rect.y + rect.height; y++) {
+            for (var x = rect.x; x < rect.x + rect.width; x++) {
+                var i = x * 4 + y * 4 * buf.width;
+                var d = Math.abs(data[i] - col[0]) + Math.abs(data[i + 1] - col[1]) + Math.abs(data[i + 2] - col[2]);
+                if (d < maxd) {
+                    score += maxd - d;
+                }
+            }
+        }
+        colobj.score = score;
+    }
+    return colormap.sort((a, b) => b.score - a.score);
+}
+function unblend(r, g, b, R, G, B) {
+    var m = Math.sqrt(r * r + g * g + b * b);
+    var n = Math.sqrt(R * R + G * G + B * B);
+    var x = (r * R + g * G + b * B) / n;
+    var y = Math.sqrt(Math.max(0, m * m - x * x));
+    var r1 = Math.max(0, (63.75 - y) * 4);
+    var r2 = x / n * 255;
+    if (r2 > 255) //brighter than refcol
+     {
+        r1 = Math.max(0, r1 - r2 + 255);
+        r2 = 255;
+    }
+    return [r1, r2];
+}
+function getChatColor(buf, rect, colors) {
+    var bestscore = -1.0;
+    var best = null;
+    var b2 = 0.0;
+    var data = buf.data;
+    for (let col of colors) {
+        var score = 0.0;
+        for (var y = rect.y; y < rect.y + rect.height; y++) {
+            for (var x = rect.x; x < rect.x + rect.width; x++) {
+                if (x < 0 || x + 1 >= buf.width) {
+                    continue;
+                }
+                if (y < 0 || y + 1 >= buf.width) {
+                    continue;
+                }
+                let i1 = buf.pixelOffset(x, y);
+                let i2 = buf.pixelOffset(x + 1, y + 1);
+                var pixel1 = unblend(data[i1 + 0], data[i1 + 1], data[i1 + 2], col[0], col[1], col[2]);
+                var pixel2 = unblend(data[i2 + 0], data[i2 + 1], data[i2 + 2], col[0], col[1], col[2]);
+                //TODO this is from c# can simplify a bit
+                var s = (pixel1[0] / 255 * pixel1[1] / 255) * (pixel2[0] / 255 * (255.0 - pixel2[1]) / 255);
+                score += s;
+            }
+        }
+        if (score > bestscore) {
+            b2 = bestscore;
+            bestscore = score;
+            best = col;
+        }
+        else if (score > b2) {
+            b2 = score;
+        }
+    }
+    //Console.WriteLine("color: " + bestcol + " - " + (bestscore - b2));
+    //bestscore /= rect.width * rect.height;
+    return best;
+}
+/**
+ * reads a line of text with exactly known position and color. y should be the y coord of the text base line, x should be the first pixel of a new character
+ */
+function readLine(buffer, font, colors, x, y, forward, backward = false) {
+    if (typeof colors[0] != "number" && colors.length == 1) {
+        colors = colors[0];
+    }
+    var multicol = typeof colors[0] != "number";
+    var allcolors = multicol ? colors : [colors];
+    var detectcolor = function (sx, sy, backward) {
+        var w = Math.floor(font.width * 1.5);
+        if (backward) {
+            sx -= w;
+        }
+        sy -= font.basey;
+        return getChatColor(buffer, { x: sx, y: sy, width: w, height: font.height }, allcolors);
+    };
+    var fragments = [];
+    var x1 = x;
+    var x2 = x;
+    var maxspaces = (typeof font.maxspaces == "number" ? font.maxspaces : 1);
+    let fragtext = "";
+    let fraghadprimary = false;
+    var lastcol = null;
+    let addfrag = (forward) => {
+        if (!fragtext) {
+            return;
+        }
+        let frag = {
+            text: fragtext,
+            color: lastcol,
+            index: 0,
+            xstart: x + (forward ? fragstartdx : fragenddx),
+            xend: x + (forward ? fragenddx : fragstartdx)
+        };
+        if (forward) {
+            fragments.push(frag);
+        }
+        else {
+            fragments.unshift(frag);
+        }
+        fragtext = "";
+        fragstartdx = dx;
+        fraghadprimary = false;
+    };
+    for (var dirforward of [true, false]) {
+        //init vars
+        if (dirforward && !forward) {
+            continue;
+        }
+        if (!dirforward && !backward) {
+            continue;
+        }
+        var dx = 0;
+        var fragstartdx = dx;
+        var fragenddx = dx;
+        var triedspaces = 0;
+        var triedrecol = false;
+        var col = multicol ? null : colors;
+        while (true) {
+            col = col || detectcolor(x + dx, y, !dirforward);
+            var chr = (col ? readChar(buffer, font, col, x + dx, y, !dirforward, true) : null);
+            if (col == null || chr == null) {
+                if (triedspaces < maxspaces) {
+                    dx += (dirforward ? 1 : -1) * font.spacewidth;
+                    triedspaces++;
+                    continue;
+                }
+                if (multicol && !triedrecol && fraghadprimary) {
+                    dx -= (dirforward ? 1 : -1) * triedspaces * font.spacewidth;
+                    triedspaces = 0;
+                    col = null;
+                    triedrecol = true;
+                    continue;
+                }
+                if (dirforward) {
+                    x2 = x + dx - font.spacewidth;
+                }
+                else {
+                    x1 = x + dx + font.spacewidth;
+                }
+                break;
+            }
+            else {
+                if (lastcol && (col[0] != lastcol[0] || col[1] != lastcol[1] || col[2] != lastcol[2])) {
+                    addfrag(dirforward);
+                }
+                var spaces = "";
+                for (var a = 0; a < triedspaces; a++) {
+                    spaces += " ";
+                }
+                if (dirforward) {
+                    fragtext += spaces + chr.chr;
+                }
+                else {
+                    fragtext = chr.chr + spaces + fragtext;
+                }
+                if (!chr.basechar.secondary) {
+                    fraghadprimary = true;
+                }
+                triedspaces = 0;
+                triedrecol = false;
+                dx += (dirforward ? 1 : -1) * chr.basechar.width;
+                fragenddx = dx;
+                lastcol = col;
+            }
+        }
+        if (lastcol && fraghadprimary) {
+            addfrag(dirforward);
+        }
+    }
+    fragments.forEach((f, i) => f.index = i);
+    return {
+        debugArea: { x: x1, y: y - 9, w: x2 - x1, h: 10 },
+        text: fragments.map(f => f.text).join(""),
+        fragments
+    };
+}
+/**
+ * Reads a line of text that uses a smallcaps font, these fonts can have duplicate chars that only have a different amount of
+ * empty space after the char before the next char starts.
+ * The coordinates should be near the end of the string, or a rectangle with high 1 containing all points where the string can end.
+ */
+function readSmallCapsBackwards(buffer, font, cols, x, y, w = -1, h = -1) {
+    if (w == -1) {
+        w = font.width + font.spacewidth;
+        x -= Math.ceil(w / 2);
+    }
+    if (h == -1) {
+        h = 7;
+        y -= 1;
+    }
+    var matchedchar = null;
+    var sorted = (cols.length == 1 ? [{ col: cols[0], score: 1 }] : getChatColorMono(buffer, new base_1.Rect(x, y - font.basey, w, h), cols));
+    //loop until we have a match (max 2 cols)
+    for (var a = 0; a < 2 && a < sorted.length && matchedchar == null; a++) {
+        for (var cx = x + w - 1; cx >= x; cx--) {
+            var best = 1000; //TODO finetune score constants
+            var bestchar = null;
+            for (var cy = y; cy < y + h; cy++) {
+                var chr = readChar(buffer, font, sorted[a].col, cx, cy, true, false);
+                if (chr != null && chr.sizescore < best) {
+                    best = chr.sizescore;
+                    bestchar = chr;
+                }
+            }
+            if (bestchar) {
+                matchedchar = bestchar;
+                break;
+            }
+        }
+    }
+    if (matchedchar == null) {
+        return { text: "", debugArea: { x, y, w, h } };
+    }
+    return readLine(buffer, font, cols, matchedchar.x, matchedchar.y, false, true);
+}
+/**
+ * Reads a single character at the exact given location
+ * @param x exact x location of the start of the character domain (includes part of the spacing between characters)
+ * @param y exact y location of the baseline pixel of the character
+ * @param backwards read in backwards direction, the x location should be the first pixel after the character domain in that case
+ */
+function readChar(buffer, font, col, x, y, backwards, allowSecondary) {
+    y -= font.basey;
+    var shiftx = 0;
+    var shifty = font.basey;
+    var shadow = font.shadow;
+    var debugobj = null;
+    var debugimg = null;
+    if (exports.debug.trackread) {
+        var name = x + ";" + y + " " + JSON.stringify(col);
+        if (!exports.debugout[name]) {
+            exports.debugout[name] = [];
+        }
+        debugobj = exports.debugout[name];
+    }
+    //===== make sure the full domain is inside the bitmap/buffer ======
+    if (y < 0 || y + font.height >= buffer.height) {
+        return null;
+    }
+    if (!backwards) {
+        if (x < 0 || x + font.width > buffer.width) {
+            return null;
+        }
+    }
+    else {
+        if (x - font.width < 0 || x > buffer.width) {
+            return null;
+        }
+    }
+    //====== start reading the char ======
+    var scores = [];
+    charloop: for (var chr = 0; chr < font.chars.length; chr++) {
+        var chrobj = font.chars[chr];
+        if (chrobj.secondary && !allowSecondary) {
+            continue;
+        }
+        const scoreobj = { score: 0, sizescore: 0, chr: chrobj };
+        var chrx = (backwards ? x - chrobj.width : x);
+        if (exports.debug.trackread) {
+            debugimg = new base_1.ImageData(font.width, font.height);
+        }
+        for (var a = 0; a < chrobj.pixels.length;) {
+            var i = (chrx + chrobj.pixels[a]) * 4 + (y + chrobj.pixels[a + 1]) * buffer.width * 4;
+            var penalty = 0;
+            if (!shadow) {
+                penalty = canblend(buffer.data[i], buffer.data[i + 1], buffer.data[i + 2], col[0], col[1], col[2], chrobj.pixels[a + 2] / 255);
+                a += 3;
+            }
+            else {
+                var lum = chrobj.pixels[a + 3] / 255;
+                penalty = canblend(buffer.data[i], buffer.data[i + 1], buffer.data[i + 2], col[0] * lum, col[1] * lum, col[2] * lum, chrobj.pixels[a + 2] / 255);
+                a += 4;
+            }
+            scoreobj.score += penalty;
+            // Short circuit the loop as soon as the penalty threshold (400) is reached
+            if (!debugobj && scoreobj.score > 400) {
+                continue charloop;
+            }
+            //TODO add compiler flag to this to remove it for performance
+            if (debugimg) {
+                debugimg.setPixel(chrobj.pixels[a], chrobj.pixels[a + 1], [penalty, penalty, penalty, 255]);
+            }
+        }
+        scoreobj.sizescore = scoreobj.score - chrobj.bonus;
+        if (debugobj) {
+            debugobj.push({ chr: chrobj.chr, score: scoreobj.sizescore, rawscore: scoreobj.score, img: debugimg });
+        }
+        scores.push(scoreobj);
+    }
+    if (exports.debug.printcharscores) {
+        scores.sort((a, b) => a.sizescore - b.sizescore);
+        scores.slice(0, 5).forEach(q => console.log(q.chr.chr, q.score.toFixed(3), q.sizescore.toFixed(3)));
+    }
+    let winchr = null;
+    for (const chrscore of scores) {
+        if (!winchr || (chrscore && chrscore.sizescore < winchr.sizescore))
+            winchr = chrscore;
+    }
+    if (!winchr || winchr.score > 400) {
+        return null;
+    }
+    return { chr: winchr.chr.chr, basechar: winchr.chr, x: x + shiftx, y: y + shifty, score: winchr.score, sizescore: winchr.sizescore };
+}
+function loadFontImage(img, meta) {
+    var bg = null;
+    var pxheight = img.height - 1;
+    if (meta.unblendmode == "removebg") {
+        pxheight /= 2;
+    }
+    var inimg = img.clone({ x: 0, y: 0, width: img.width, height: pxheight });
+    var outimg;
+    if (meta.unblendmode == "removebg") {
+        bg = img.clone({ x: 0, y: pxheight + 1, width: img.width, height: pxheight });
+        outimg = unblendKnownBg(inimg, bg, meta.shadow, meta.color[0], meta.color[1], meta.color[2]);
+    }
+    else if (meta.unblendmode == "raw") {
+        outimg = unblendTrans(inimg, meta.shadow, meta.color[0], meta.color[1], meta.color[2]);
+    }
+    else if (meta.unblendmode == "blackbg") {
+        outimg = unblendBlackBackground(inimg, meta.color[0], meta.color[1], meta.color[2]);
+    }
+    else {
+        throw new Error("no unblend mode");
+    }
+    var unblended = new base_1.ImageData(img.width, pxheight + 1);
+    outimg.copyTo(unblended, 0, 0, outimg.width, outimg.height, 0, 0);
+    img.copyTo(unblended, 0, pxheight, img.width, 1, 0, pxheight);
+    return generateFont(unblended, meta.chars, meta.seconds, meta.bonus || {}, meta.basey, meta.spacewidth, meta.treshold, meta.shadow);
+}
+/**
+ * Generates a font json description to use in reader functions
+ * @param unblended A source image with all characters lined up. The image should be unblended into components using the unblend functions
+ * The lowest pixel line of this image is used to mark the location and size of the charecters if the red component is 255 it means there is a character on that pixel column
+ * @param chars A string containing all the characters of the image in the same order
+ * @param seconds A string with characters that are considered unlikely and should only be detected if no other character is possible.
+ * For example the period (.) character matches positive inside many other characters and should be marked as secondary
+ * @param bonusses An object that contains bonus scores for certain difficult characters to make the more likely to be red.
+ * @param basey The y position of the baseline pixel of the font
+ * @param spacewidth the number of pixels a space takes
+ * @param treshold minimal color match proportion (0-1) before a pixel is used for the font
+ * @param shadow whether this font also uses the black shadow some fonts have. The "unblended" image should be unblended correspondingly
+ * @returns a javascript object describing the font which is used as input for the different read functions
+ */
+function generateFont(unblended, chars, seconds, bonusses, basey, spacewidth, treshold, shadow) {
+    //settings vars
+    treshold *= 255;
+    //initial vars
+    var miny = unblended.height - 1;
+    var maxy = 0;
+    var font = { chars: [], width: 0, spacewidth: spacewidth, shadow: shadow, height: 0, basey: 0 };
+    var ds = false;
+    var chardata = [];
+    //index all chars
+    for (var dx = 0; dx < unblended.width; dx++) {
+        var i = 4 * dx + 4 * unblended.width * (unblended.height - 1);
+        if (unblended.data[i] == 255 && unblended.data[i + 3] == 255) {
+            if (ds === false) {
+                ds = dx;
+            }
+        }
+        else {
+            if (ds !== false) {
+                //char found, start detection
+                var de = dx;
+                var char = chars[chardata.length];
+                var chr = {
+                    ds: ds,
+                    de: de,
+                    width: de - ds,
+                    chr: char,
+                    bonus: (bonusses && bonusses[char]) || 0,
+                    secondary: seconds.indexOf(chars[chardata.length]) != -1,
+                    pixels: []
+                };
+                chardata.push(chr);
+                font.width = Math.max(font.width, chr.width);
+                for (x = 0; x < de - ds; x++) {
+                    for (y = 0; y < unblended.height - 1; y++) {
+                        var i = (x + ds) * 4 + y * unblended.width * 4;
+                        if (unblended.data[i] >= treshold) {
+                            miny = Math.min(miny, y);
+                            maxy = Math.max(maxy, y);
+                        }
+                    }
+                }
+                ds = false;
+            }
+        }
+    }
+    font.height = maxy + 1 - miny;
+    font.basey = basey - miny;
+    //detect all pixels
+    for (var a in chardata) {
+        var chr = chardata[a];
+        for (var x = 0; x < chr.width; x++) {
+            for (var y = 0; y < maxy + 1 - miny; y++) {
+                var i = (x + chr.ds) * 4 + (y + miny) * unblended.width * 4;
+                if (unblended.data[i] >= treshold) {
+                    chr.pixels.push(x, y);
+                    chr.pixels.push(unblended.data[i]);
+                    if (shadow) {
+                        chr.pixels.push(unblended.data[i + 1]);
+                    }
+                    chr.bonus += 5;
+                }
+            }
+        }
+        //prevent js from doing the thing with unnecessary output precision
+        chr.bonus = +chr.bonus.toFixed(3);
+        font.chars.push({ width: chr.width, bonus: chr.bonus, chr: chr.chr, pixels: chr.pixels, secondary: chr.secondary });
+    }
+    return font;
+}
+
+
+/***/ },
+
+/***/ "alt1/base"
+/*!**************************************************************************************************!*\
+  !*** external {"root":"A1lib","commonjs2":"alt1/base","commonjs":"alt1/base","amd":"alt1/base"} ***!
+  \**************************************************************************************************/
+(module) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE_alt1_base__;
+
+/***/ }
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __nested_webpack_require_27355__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		if (!(moduleId in __webpack_modules__)) {
+/******/ 			delete __webpack_module_cache__[moduleId];
+/******/ 			var e = new Error("Cannot find module '" + moduleId + "'");
+/******/ 			e.code = 'MODULE_NOT_FOUND';
+/******/ 			throw e;
+/******/ 		}
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __nested_webpack_require_27355__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __nested_webpack_exports__ = __nested_webpack_require_27355__("./src/ocr/index.ts");
+/******/ 	
+/******/ 	return __nested_webpack_exports__;
+/******/ })()
+;
+});
+
 /***/ }
 
 /******/ 	});
@@ -2334,86 +3102,382 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _index_html__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./index.html */ "./index.html");
 /* harmony import */ var alt1_base__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! alt1/base */ "../node_modules/alt1/dist/base/index.js");
 /* harmony import */ var alt1_base__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(alt1_base__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var alt1_ocr__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! alt1/ocr */ "../node_modules/alt1/dist/ocr/index.js");
+/* harmony import */ var alt1_ocr__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(alt1_ocr__WEBPACK_IMPORTED_MODULE_2__);
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (undefined && undefined.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (g && (g = 0, op[0] && (_ = 0)), _) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
 
 
-var fortunateItems = [
-    "Rune platebody",
-    "Robin Hood hat",
-    "Ranger boots",
-    "Bandos cloak",
-    "Armadyl cloak",
-    "Saradomin cloak",
-    "Zamorak cloak",
-    "Ancient cloak"
+
+var chatfont = __webpack_require__(/*! ./fonts/aa_12px_mono.fontmeta.json */ "./fonts/aa_12px_mono.fontmeta.json");
+var componentNames = [
+    "Fortunate",
+    "Precious",
+    "Classic",
+    "Historic",
+    "Timeworn",
+    "Vintage",
+    "Pious",
+    "Spiritual",
+    "Swift",
+    "Healthy",
+    "Living",
+    "Evasive",
+    "Powerful",
+    "Enhancing",
+    "Protective",
+    "Base",
+    "Blade",
+    "Clear",
+    "Connector",
+    "Crafted",
+    "Crystal",
+    "Culinary",
+    "Deflecting",
+    "Delicate",
+    "Dextrous",
+    "Direct",
+    "Dragonfire",
+    "Enhancing",
+    "Ethereal",
+    "Flexible",
+    "Head",
+    "Heavy",
+    "Imbued",
+    "Light",
+    "Magic",
+    "Metallic",
+    "Organic",
+    "Padded",
+    "Plated",
+    "Precise",
+    "Sharp",
+    "Simple",
+    "Smooth",
+    "Spiked",
+    "Strong",
+    "Subtle",
+    "Tensile",
+    "Variable",
+    "Cover"
 ];
+var componentItems = {};
+var wikiItemInfo = {};
+function normalize(s) {
+    return s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+}
+function formatGp(n) {
+    if (!n)
+        return "unknown";
+    return n.toLocaleString() + " gp";
+}
+function getComponentMatch(item) {
+    var n = normalize(item);
+    for (var _i = 0, _a = Object.entries(componentItems); _i < _a.length; _i++) {
+        var _b = _a[_i], component = _b[0], items = _b[1];
+        if (items.some(function (x) { return normalize(x) === n; }))
+            return component;
+    }
+    return null;
+}
 function analyzeItem(item) {
-    var name = item.toLowerCase();
-    if (fortunateItems.some(function (x) { return x.toLowerCase() === name; }))
+    var component = getComponentMatch(item);
+    if (component)
         return "DISASSEMBLE";
-    if (name.includes("bandos") || name.includes("armadyl"))
+    var n = normalize(item);
+    var info = wikiItemInfo[n];
+    if ((info === null || info === void 0 ? void 0 : info.gePrice) && info.gePrice > 15000)
         return "SELL";
-    if (name.includes("iron") || name.includes("bronze"))
-        return "JUNK";
     return "KEEP";
 }
-document.body.innerHTML = "\n<div style=\"padding:10px;font-family:Arial;background:#111;color:white;min-height:100vh;\">\n  <h2>RS3 Intel Suite vMOUSE</h2>\n\n  <input id=\"itemInput\" placeholder=\"Enter item name\" style=\"width:100%;padding:8px;\" />\n\n  <br/><br/>\n\n  <button id=\"checkBtn\" style=\"width:100%;padding:8px;\">Check Item</button>\n\n  <br/><br/>\n\n  <button id=\"fortunateBtn\" style=\"width:100%;padding:8px;\">Show Fortunate Component Items</button>\n\n  <br/><br/>\n\n  <button id=\"autoBtn\" style=\"width:100%;padding:8px;\">Start Auto Mode</button>\n\n  <div id=\"status\" style=\"margin-top:10px;color:#aaa;\">Auto mode off.</div>\n\n  <div id=\"results\" style=\"margin-top:15px;\"></div>\n</div>\n";
+function loadComponentFromWiki(component) {
+    return __awaiter(this, void 0, void 0, function () {
+        var url, res, data;
+        var _a, _b, _c, _d;
+        return __generator(this, function (_e) {
+            switch (_e.label) {
+                case 0:
+                    url = "https://runescape.wiki/api.php?action=query&format=json&origin=*&list=categorymembers&cmtitle=" +
+                        encodeURIComponent("Category:Items that disassemble into ".concat(component, " components")) +
+                        "&cmlimit=500";
+                    return [4 /*yield*/, fetch(url)];
+                case 1:
+                    res = _e.sent();
+                    return [4 /*yield*/, res.json()];
+                case 2:
+                    data = _e.sent();
+                    componentItems[component] =
+                        (_d = (_c = (_b = (_a = data.query) === null || _a === void 0 ? void 0 : _a.categorymembers) === null || _b === void 0 ? void 0 : _b.map(function (x) { return x.title; })) === null || _c === void 0 ? void 0 : _c.filter(function (x) { return !x.startsWith("Category:"); })) !== null && _d !== void 0 ? _d : [];
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+function loadAllComponentsFromWiki() {
+    return __awaiter(this, void 0, void 0, function () {
+        var _i, componentNames_1, component, _a, allItems;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
+                case 0:
+                    status.innerHTML = "Loading component data from RS Wiki...";
+                    _i = 0, componentNames_1 = componentNames;
+                    _b.label = 1;
+                case 1:
+                    if (!(_i < componentNames_1.length)) return [3 /*break*/, 6];
+                    component = componentNames_1[_i];
+                    _b.label = 2;
+                case 2:
+                    _b.trys.push([2, 4, , 5]);
+                    return [4 /*yield*/, loadComponentFromWiki(component)];
+                case 3:
+                    _b.sent();
+                    return [3 /*break*/, 5];
+                case 4:
+                    _a = _b.sent();
+                    componentItems[component] = [];
+                    return [3 /*break*/, 5];
+                case 5:
+                    _i++;
+                    return [3 /*break*/, 1];
+                case 6:
+                    allItems = [];
+                    Object.values(componentItems).forEach(function (items) {
+                        items.forEach(function (item) { return allItems.push(item); });
+                    });
+                    ;
+                    return [4 /*yield*/, loadItemValuesFromWiki(allItems)];
+                case 7:
+                    _b.sent();
+                    status.innerHTML =
+                        "Loaded " +
+                            allItems.length.toLocaleString() +
+                            " component items from RS Wiki.";
+                    return [2 /*return*/];
+            }
+        });
+    });
+}
+function loadItemValuesFromWiki(itemNames) {
+    return __awaiter(this, void 0, void 0, function () {
+        var unique, i, chunk, titles, url, res, data, _i, _a, page, title, text, geMatch, alchMatch, _b;
+        var _c, _d, _e, _f;
+        return __generator(this, function (_g) {
+            switch (_g.label) {
+                case 0:
+                    unique = Array.from(new Set(itemNames)).filter(Boolean);
+                    i = 0;
+                    _g.label = 1;
+                case 1:
+                    if (!(i < unique.length)) return [3 /*break*/, 7];
+                    chunk = unique.slice(i, i + 50);
+                    titles = chunk.map(encodeURIComponent).join("|");
+                    url = "https://runescape.wiki/api.php?action=query&format=json&origin=*&prop=revisions&rvprop=content&rvslots=main&titles=" +
+                        titles;
+                    _g.label = 2;
+                case 2:
+                    _g.trys.push([2, 5, , 6]);
+                    return [4 /*yield*/, fetch(url)];
+                case 3:
+                    res = _g.sent();
+                    return [4 /*yield*/, res.json()];
+                case 4:
+                    data = _g.sent();
+                    for (_i = 0, _a = Object.values(data.query.pages); _i < _a.length; _i++) {
+                        page = _a[_i];
+                        title = page.title;
+                        text = ((_f = (_e = (_d = (_c = page.revisions) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.slots) === null || _e === void 0 ? void 0 : _e.main) === null || _f === void 0 ? void 0 : _f["*"]) || "";
+                        geMatch = text.match(/\|\s*exchange\s*=\s*([\d,]+)/i) ||
+                            text.match(/\|\s*gemw\s*=\s*([\d,]+)/i);
+                        alchMatch = text.match(/\|\s*highalch\s*=\s*([\d,]+)/i) ||
+                            text.match(/\|\s*high alch\s*=\s*([\d,]+)/i);
+                        wikiItemInfo[normalize(title)] = {
+                            name: title,
+                            gePrice: geMatch ? Number(geMatch[1].replace(/,/g, "")) : undefined,
+                            highAlch: alchMatch ? Number(alchMatch[1].replace(/,/g, "")) : undefined
+                        };
+                    }
+                    return [3 /*break*/, 6];
+                case 5:
+                    _b = _g.sent();
+                    return [3 /*break*/, 6];
+                case 6:
+                    i += 50;
+                    return [3 /*break*/, 1];
+                case 7: return [2 /*return*/];
+            }
+        });
+    });
+}
+document.body.innerHTML = "\n<div style=\"padding:10px;font-family:Arial;background:#111;color:white;min-height:100vh;\">\n  <h2>RS3 Intel Suite</h2>\n\n  <input id=\"itemInput\" placeholder=\"Enter item name\" style=\"width:100%;padding:8px;\" />\n\n  <br/><br/>\n  <input id=\"qtyInput\" placeholder=\"Quantity\" value=\"1\" style=\"width:100%;padding:8px;\" />\n\n  <br/><br/>\n  <button id=\"checkBtn\" style=\"width:100%;padding:8px;\">Check Item</button>\n\n  <br/><br/>\n  <button id=\"componentsBtn\" style=\"width:100%;padding:8px;\">Show Component Lists</button>\n\n  <br/><br/>\n  <button id=\"autoBtn\" style=\"width:100%;padding:8px;\">Start Auto Tooltip Scan</button>\n\n  <div id=\"status\" style=\"margin-top:10px;color:#aaa;\">Loading...</div>\n  <div id=\"results\" style=\"margin-top:15px;\"></div>\n</div>\n";
 var input = document.getElementById("itemInput");
+var qtyInput = document.getElementById("qtyInput");
 var results = document.getElementById("results");
 var status = document.getElementById("status");
-function renderItem(item) {
+function renderItem(item, quantity) {
+    var _a, _b;
+    if (quantity === void 0) { quantity = 1; }
     var action = analyzeItem(item);
-    results.innerHTML = "\n    <div style=\"border:1px solid #333;padding:10px;margin-top:10px;\">\n      <h3>".concat(item, "</h3>\n      <b>").concat(action, "</b>\n    </div>\n  ");
+    var component = getComponentMatch(item);
+    var info = wikiItemInfo[normalize(item)];
+    var geEach = (_a = info === null || info === void 0 ? void 0 : info.gePrice) !== null && _a !== void 0 ? _a : 0;
+    var alchEach = (_b = info === null || info === void 0 ? void 0 : info.highAlch) !== null && _b !== void 0 ? _b : 0;
+    var geTotal = geEach * quantity;
+    var alchTotal = alchEach * quantity;
+    results.innerHTML = "\n    <div style=\"border:1px solid #333;padding:10px;margin-top:10px;\">\n      <h3>".concat(item, "</h3>\n\n      <div><b>Quantity:</b> ").concat(quantity.toLocaleString(), "</div>\n      <div><b>Recommendation:</b> ").concat(action, "</div>\n      ").concat(component ? "<div><b>Component:</b> ".concat(component, "</div>") : "", "\n\n      <hr/>\n\n      <div><b>GE each:</b> ").concat(formatGp(geEach), "</div>\n      <div><b>GE total:</b> ").concat(formatGp(geTotal), "</div>\n\n      <div><b>High alch each:</b> ").concat(formatGp(alchEach), "</div>\n      <div><b>High alch total:</b> ").concat(formatGp(alchTotal), "</div>\n    </div>\n  ");
 }
-document.getElementById("checkBtn").onclick = function () {
-    var item = input.value.trim();
-    if (!item)
-        return;
-    renderItem(item);
-};
-document.getElementById("fortunateBtn").onclick = function () {
-    results.innerHTML =
-        "<h3>Fortunate Component Items</h3>" +
-            fortunateItems.map(function (x) { return "<div>".concat(x, " \u2192 DISASSEMBLE</div>"); }).join("");
+function extractItemFromTooltip(text) {
+    return text
+        .replace(/Withdraw-All/i, "")
+        .replace(/Withdraw-1/i, "")
+        .replace(/Withdraw-5/i, "")
+        .replace(/Withdraw-10/i, "")
+        .replace(/\+\d+ options/i, "")
+        .replace(/\([\d,]+\)/g, "")
+        .trim();
+}
+function extractQuantityFromTooltip(text) {
+    var match = text.match(/\(([\d,]+)\)/);
+    if (!match)
+        return 1;
+    return Number(match[1].replace(/,/g, ""));
+}
+function scanTooltipText() {
+    var _a;
+    var img = alt1_base__WEBPACK_IMPORTED_MODULE_1__.captureHoldFullRs();
+    var buf = img.toData();
+    var scanPoints = [
+        { x: 850, y: 220 },
+        { x: 900, y: 240 },
+        { x: 950, y: 260 },
+        { x: 1000, y: 280 },
+        { x: 1050, y: 300 },
+        { x: 1100, y: 320 },
+        { x: 1150, y: 340 },
+        { x: 1200, y: 360 },
+        { x: 1250, y: 380 },
+        { x: 1300, y: 400 },
+        { x: 1350, y: 420 },
+        { x: 1400, y: 440 }
+    ];
+    for (var _i = 0, scanPoints_1 = scanPoints; _i < scanPoints_1.length; _i++) {
+        var p = scanPoints_1[_i];
+        var line = alt1_ocr__WEBPACK_IMPORTED_MODULE_2__.readLine(buf, chatfont, [255, 255, 255], p.x, p.y, true, false);
+        if ((_a = line === null || line === void 0 ? void 0 : line.text) === null || _a === void 0 ? void 0 : _a.toLowerCase().includes("withdraw")) {
+            return line.text;
+        }
+    }
+    return "";
+}
+document.getElementById("checkBtn").onclick = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var item, qty;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                item = input.value.trim();
+                qty = Number(qtyInput.value.replace(/,/g, "")) || 1;
+                if (!item)
+                    return [2 /*return*/];
+                if (!!wikiItemInfo[normalize(item)]) return [3 /*break*/, 2];
+                return [4 /*yield*/, loadItemValuesFromWiki([item])];
+            case 1:
+                _a.sent();
+                _a.label = 2;
+            case 2:
+                renderItem(item, qty);
+                return [2 /*return*/];
+        }
+    });
+}); };
+document.getElementById("componentsBtn").onclick = function () {
+    results.innerHTML = Object.entries(componentItems)
+        .filter(function (_a) {
+        var items = _a[1];
+        return items.length > 0;
+    })
+        .map(function (_a) {
+        var component = _a[0], items = _a[1];
+        return "\n      <h3>".concat(component, " Components</h3>\n      <div><b>").concat(items.length, "</b> items loaded</div>\n      ").concat(items.slice(0, 100).map(function (item) { return "<div>".concat(item, " \u2192 DISASSEMBLE</div>"); }).join(""), "\n      ").concat(items.length > 100 ? "<div>...and ".concat(items.length - 100, " more</div>") : "", "\n    ");
+    })
+        .join("");
 };
 var autoRunning = false;
 var autoTimer = null;
 function tickAutoMode() {
     try {
-        if (!window.alt1) {
-            status.innerHTML = "Alt1 object not detected.";
+        if (!window.alt1 || !alt1.rsLinked || !alt1.permissionPixel) {
+            status.innerHTML = "Alt1 is not linked or pixel permission is missing.";
             return;
         }
+        var tooltip = scanTooltipText();
         status.innerHTML =
             "Auto Mode: ON" +
-                "<br>alt1 exists: true" +
-                "<br>rsLinked: " + alt1.rsLinked +
-                "<br>permissionPixel: " + alt1.permissionPixel +
-                "<br>permissionOverlay: " + alt1.permissionOverlay;
-        if (!alt1.permissionPixel) {
-            status.innerHTML += "<br>No pixel permission.";
-            return;
+                "<br>Tooltip OCR: " + (tooltip || "nothing found");
+        if (tooltip) {
+            var item = extractItemFromTooltip(tooltip);
+            var qty = extractQuantityFromTooltip(tooltip);
+            if (item) {
+                renderItem(item, qty);
+            }
         }
-        var img = alt1_base__WEBPACK_IMPORTED_MODULE_1__.captureHoldFullRs();
-        status.innerHTML +=
-            "<br>Captured RS screen: " + img.width + " x " + img.height;
     }
     catch (e) {
         status.innerHTML = "Auto Mode error:<br>" + String(e);
     }
 }
 document.getElementById("autoBtn").onclick = function () {
-    alert("Auto button clicked");
     var button = document.getElementById("autoBtn");
-    button.innerText = "Stop Auto Mode";
-    status.innerHTML = "Clicked. Starting tick...";
-    tickAutoMode();
-    if (autoTimer !== null) {
-        clearInterval(autoTimer);
-    }
-    autoTimer = window.setInterval(function () {
+    autoRunning = !autoRunning;
+    if (autoRunning) {
+        button.innerText = "Stop Auto Tooltip Scan";
         tickAutoMode();
-    }, 500);
+        autoTimer = window.setInterval(function () {
+            tickAutoMode();
+        }, 1000);
+    }
+    else {
+        button.innerText = "Start Auto Tooltip Scan";
+        status.innerHTML = "Auto Mode: OFF";
+        if (autoTimer !== null) {
+            clearInterval(autoTimer);
+            autoTimer = null;
+        }
+    }
 };
+loadAllComponentsFromWiki();
 
 })();
 
