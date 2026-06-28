@@ -79,71 +79,64 @@ document.getElementById("fortunateBtn")!.onclick = () => {
 
 let autoRunning = false;
 let autoTimer: number | null = null;
+let mouseX = 0;
+let mouseY = 0;
+
+document.addEventListener("mousemove", (event) => {
+  mouseX = event.clientX;
+  mouseY = event.clientY;
+});
 
 function tickAutoMode() {
   try {
-    if (!window.alt1 || !alt1.rsLinked || !alt1.permissionPixel) {
-      status.innerHTML = "Alt1 not linked or missing pixel permission.";
+    if (!window.alt1) {
+      status.innerHTML = "Alt1 object not detected.";
       return;
     }
 
-    const img = a1lib.captureHoldFullRs();
-    const buf = img.toData();
-
-    // Test tooltip OCR area. Adjust these if needed.
-    const x = 900;
-    const y = 250;
-
-    const line = OCR.readLine(
-      buf,
-      chatfont,
-      [255, 255, 255],
-      x,
-      y,
-      true,
-      false
-    );
-
-    const text = line ? line.text : "";
-
     status.innerHTML =
       "Auto Mode: ON" +
-      "<br>Captured RS screen: " + img.width + " x " + img.height +
-      "<br>OCR text: " + text;
+      "<br>rsLinked: " + alt1.rsLinked +
+      "<br>permissionPixel: " + alt1.permissionPixel +
+      "<br>permissionOverlay: " + alt1.permissionOverlay +
+      "<br>mouseX: " + mouseX +
+      "<br>mouseY: " + mouseY;
 
-    if (text.includes("Withdraw")) {
-      const item = text
-        .replace("Withdraw-All", "")
-        .replace("Withdraw-1", "")
-        .replace("Withdraw-5", "")
-        .replace("Withdraw-10", "")
-        .trim();
-
-      if (item) {
-        renderItem(item);
-      }
+    if (alt1.permissionOverlay) {
+      alt1.overLayRect(
+        a1lib.mixColor(255, 128, 0),
+        mouseX - 25,
+        mouseY - 25,
+        50,
+        50,
+        500,
+        2
+      );
     }
-
   } catch (e) {
     status.innerHTML = "Auto Mode error:<br>" + String(e);
   }
 }
 
 document.getElementById("autoBtn")!.onclick = () => {
-  alert("Auto button clicked");
-
   const button = document.getElementById("autoBtn") as HTMLButtonElement;
 
-  button.innerText = "Stop Auto Mode";
-  status.innerHTML = "Clicked. Starting tick...";
+  autoRunning = !autoRunning;
 
-  tickAutoMode();
-
-  if (autoTimer !== null) {
-    clearInterval(autoTimer);
-  }
-
-  autoTimer = window.setInterval(() => {
+  if (autoRunning) {
+    button.innerText = "Stop Auto Mode";
     tickAutoMode();
-  }, 500);
+
+    autoTimer = window.setInterval(() => {
+      tickAutoMode();
+    }, 250);
+  } else {
+    button.innerText = "Start Auto Mode";
+    status.innerHTML = "Auto Mode: OFF";
+
+    if (autoTimer !== null) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+  }
 };
