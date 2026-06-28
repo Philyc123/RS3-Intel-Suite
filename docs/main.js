@@ -2385,8 +2385,8 @@ document.getElementById("scanBtn").onclick = function () {
             status.innerHTML = "Alt1 not linked or pixel permission missing.";
             return;
         }
-        var img = alt1_base__WEBPACK_IMPORTED_MODULE_1__.captureHold(0, 0, alt1.rsWidth, alt1.rsHeight);
-        var box = findTooltipBox(img.toData());
+        var img = alt1_base__WEBPACK_IMPORTED_MODULE_1__.capture(0, 0, alt1.rsWidth, alt1.rsHeight);
+        var box = findTooltipBox(img);
         if (!box) {
             status.innerHTML =
                 "No tooltip box found.<br><br>" +

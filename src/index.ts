@@ -63,8 +63,8 @@ document.getElementById("scanBtn")!.onclick = () => {
       return;
     }
 
-    const img = a1lib.captureHold(0, 0, alt1.rsWidth, alt1.rsHeight);
-    const box = findTooltipBox(img.toData());
+    const img = a1lib.capture(0, 0, alt1.rsWidth, alt1.rsHeight);
+    const box = findTooltipBox(img);
 
     if (!box) {
       status.innerHTML =
