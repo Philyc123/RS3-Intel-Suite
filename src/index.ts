@@ -273,7 +273,15 @@ function scanTooltipText(): string {
   for (const p of scanRatios) {
     const x = Math.floor(w * p.x);
     const y = Math.floor(h * p.y);
-
+	
+if (!chatfont || !chatfont.chars) {
+  throw new Error(
+    "Bad font object. type=" +
+    typeof chatfont +
+    " keys=" +
+    Object.keys(chatfont || {}).join(",")
+  );
+}
     const line = readLine(
       buf,
       chatfont,
@@ -322,29 +330,33 @@ let autoRunning = false;
 let autoTimer: number | null = null;
 
 function tickAutoMode() {
-  try {
-    if (!window.alt1 || !alt1.rsLinked || !alt1.permissionPixel) {
-      status.innerHTML = "Alt1 is not linked or pixel permission is missing.";
-      return;
+    try {
+        if (!window.alt1 || !alt1.rsLinked || !alt1.permissionPixel) {
+            status.innerHTML = "Alt1 is not linked or pixel permission is missing.";
+            return;
+        }
+
+        const tooltip = scanTooltipText();
+
+        status.innerHTML =
+            "Auto Mode: ON<br>" +
+            "Tooltip OCR: " + (tooltip || "nothing found");
+
+        if (tooltip) {
+            const item = extractItemFromTooltip(tooltip);
+            const qty = extractQuantityFromTooltip(tooltip);
+
+            if (item) {
+                renderItem(item, qty);
+            }
+        }
     }
-
-    const tooltip = scanTooltipText();
-
-    status.innerHTML =
-      "Auto Mode: ON" +
-      "<br>Tooltip OCR: " + (tooltip || "nothing found");
-
-    if (tooltip) {
-      const item = extractItemFromTooltip(tooltip);
-      const qty = extractQuantityFromTooltip(tooltip);
-
-      if (item) {
-        renderItem(item, qty);
-      }
+    catch (e: any) {
+        status.innerHTML =
+            "<pre>" +
+            (e?.stack || e?.message || String(e)) +
+            "</pre>";
     }
-  } catch (e) {
-    status.innerHTML = "Auto Mode error:<br>" + String(e);
-  }
 }
 
 document.getElementById("autoBtn")!.onclick = () => {
