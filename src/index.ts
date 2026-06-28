@@ -2,7 +2,7 @@ import "./index.html";
 
 document.body.innerHTML = `
 <div style="padding:10px;font-family:Arial;background:#111;color:white;min-height:100vh;">
-  <h2>RS3 Intel Suite - Stage 1</h2>
+  <h2>Bank Scanner1</h2>
   <button id="testBtn" style="width:100%;padding:8px;">Test Alt1 Capture</button>
   <div id="status" style="margin-top:10px;color:#aaa;">Waiting...</div>
 </div>
