@@ -1,6 +1,6 @@
 import "./index.html";
 import * as a1lib from "alt1/base";
-import * as OCR from "alt1/ocr";
+import { readLine } from "alt1/ocr";
 
 const chatfont = require("./fonts/aa_12px_mono.fontmeta.json");
 
@@ -275,7 +275,7 @@ function scanTooltipText(): string {
     const x = Math.floor(w * p.x);
     const y = Math.floor(h * p.y);
 
-    const line = OCR.readLine(
+    const line = readLine(
       buf,
       chatfont,
       [255, 255, 255],
