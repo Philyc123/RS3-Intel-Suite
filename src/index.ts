@@ -282,6 +282,16 @@ if (!chatfont || !chatfont.chars) {
     Object.keys(chatfont || {}).join(",")
   );
 }
+throw new Error(
+  "FONT DEBUG type=" +
+  typeof chatfont +
+  " keys=" +
+  Object.keys(chatfont || {}).join(",") +
+  " charsType=" +
+  typeof (chatfont as any).chars +
+  " charsLength=" +
+  ((chatfont as any).chars ? (chatfont as any).chars.length : "missing")
+);
     const line = readLine(
       buf,
       chatfont,
