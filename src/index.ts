@@ -253,11 +253,10 @@ function extractQuantityFromTooltip(text: string): number {
 }
 
 function scanTooltipText(): string {
-  const img = a1lib.capture(0, 0, alt1.rsWidth, alt1.rsHeight);
-  const buf = img;
+  const buf = a1lib.capture(0, 0, alt1.rsWidth, alt1.rsHeight);
 
-  const w = img.width;
-  const h = img.height;
+  const w = alt1.rsWidth;
+  const h = alt1.rsHeight;
 
   const scanRatios = [
     { x: 0.30, y: 0.16 },
@@ -287,10 +286,7 @@ function scanTooltipText(): string {
 
     if (line && line.text) {
       const text = line.text.trim();
-
-      if (text.toLowerCase().includes("withdraw")) {
-        return text;
-      }
+      if (text.toLowerCase().includes("withdraw")) return text;
     }
   }
 
