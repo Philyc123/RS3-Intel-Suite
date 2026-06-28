@@ -1,5 +1,6 @@
 import "./index.html";
 import * as a1lib from "alt1/base";
+import * as OCR from "alt1/ocr";
 
 type ItemAction = "SELL" | "DISASSEMBLE" | "KEEP" | "JUNK";
 
@@ -105,7 +106,7 @@ function tickAutoMode() {
 }
 
 const img = a1lib.captureHoldFullRs();
-
+status.innerHTML += "<br>Auto capture working. Tooltip OCR not added yet.";
     status.innerHTML +=
       "<br>Captured RS screen: " + img.width + " x " + img.height;
 
