@@ -1,5 +1,5 @@
 {
-  "appName": "RS3 Intel Suite",
+  "appName": "Bank Scanner",
   "description": "RS3 bank and invention helper for Alt1",
   "appUrl": "./index.html",
   "configUrl": "./appconfig.json",
@@ -10,5 +10,5 @@
   "minHeight": 300,
   "maxWidth": 1000,
   "maxHeight": 1000,
-  "permissions": "pixel,overlay"
+  "permissions": "pixel,overlay,gamestate"
 }
