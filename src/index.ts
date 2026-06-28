@@ -4,10 +4,6 @@ import * as OCR from "alt1/ocr";
 
 const chatfont = require("./fonts/aa_12px_mono.fontmeta.json");
 
-if (window.alt1) {
-  alt1.identifyAppUrl("https://philyc123.github.io/RS3-Intel-Suite/appconfig.json");
-}
-
 type ItemAction = "SELL" | "DISASSEMBLE" | "KEEP" | "UNKNOWN";
 
 type WikiItemInfo = {
