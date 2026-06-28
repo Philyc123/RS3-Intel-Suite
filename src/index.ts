@@ -2,7 +2,7 @@ import "./index.html";
 import * as a1lib from "alt1/base";
 import * as OCR from "alt1/ocr";
 
-const chatfont = require("./fonts/aa_12px_mono.fontmeta.json");
+const chatfont = require("./fonts/aa_12px_mono.fontmeta.json").default;
 
 type ItemAction = "SELL" | "DISASSEMBLE" | "KEEP" | "UNKNOWN";
 
