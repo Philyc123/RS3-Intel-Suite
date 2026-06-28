@@ -35,10 +35,11 @@ module.exports = {
 	   { test: /\.scss$/, use: ["style-loader", "css-loader", "sass-loader"] },
 
 	   { test: /\.data\.png$/, loader: "alt1/imagedata-loader", type: "javascript/auto" },
-	   { test: /\.fontmeta\.json$/, loader: "alt1/font-loader", type: "javascript/auto" },
 
 	   { test: /\.(png|jpg|jpeg|gif|webp)$/, type: "asset/resource", generator: { filename: "[base]" } },
-	   { test: /\.(html|json)$/, type: "asset/resource", generator: { filename: "[base]" } }
+	   { test: /\.json$/, type: "json" },
+	   { test: /\.html$/, type: "asset/resource", generator: { filename: "[base]" } },
+    
             
         ]
     }
