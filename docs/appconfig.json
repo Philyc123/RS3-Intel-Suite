@@ -1,9 +1,9 @@
 {
   "appName": "Bank Scanner",
   "description": "RS3 bank and invention helper for Alt1",
-  "appUrl": "./index.html",
-  "configUrl": "./appconfig.json",
-  "iconUrl": "./icon.png",
+  "appUrl": "https://philyc123.github.io/RS3-Intel-Suite/index.html",
+  "configUrl": "https://philyc123.github.io/RS3-Intel-Suite/appconfig.json",
+  "iconUrl": "https://philyc123.github.io/RS3-Intel-Suite/icon.png",
   "defaultWidth": 420,
   "defaultHeight": 720,
   "minWidth": 300,
